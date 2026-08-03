@@ -1,4 +1,4 @@
-<img width="700" height="83" alt="image" src="https://github.com/user-attachments/assets/f8caee3e-5d37-4b6a-9adc-0bded5de009b" /># FactoryPulse AI
+# FactoryPulse AI
 
 AI Copilot for Sustainable Manufacturing.
 It predicts machine failures before they happen, explains *why* in plain
