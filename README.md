@@ -8,7 +8,9 @@ language, and tells a plant manager what to do about it — built on top of the
 ```
 Sensor readings → ML models → Health score & risk → AI explanations → Dashboard & Chat
 ```
-
+<p align="center">
+  <img src="ss.jpeg" alt="Factory_PULSE_AI dashboard" width="800">
+</p>
 ## Features
 
 | # | Feature | Where it lives |
