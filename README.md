@@ -1,7 +1,7 @@
-# FactoryPulse AI
+<img width="700" height="83" alt="image" src="https://github.com/user-attachments/assets/f8caee3e-5d37-4b6a-9adc-0bded5de009b" /># FactoryPulse AI
 
-An AI-powered predictive maintenance copilot for smart manufacturing. It
-predicts machine failures before they happen, explains *why* in plain
+AI Copilot for Sustainable Manufacturing.
+It predicts machine failures before they happen, explains *why* in plain
 language, and tells a plant manager what to do about it — built on top of the
 [AI4I 2020 Predictive Maintenance dataset](https://archive.ics.uci.edu/dataset/601/ai4i+2020+predictive+maintenance+dataset).
 
