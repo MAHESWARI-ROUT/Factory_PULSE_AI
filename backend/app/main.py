@@ -28,10 +28,15 @@ logger = logging.getLogger("factorypulse.main")
 settings = get_settings()
 
 
+import asyncio
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
-    _auto_seed_if_empty()
+
+    # Start the app immediately
+    asyncio.create_task(asyncio.to_thread(_auto_seed_if_empty))
+
     yield
 
 

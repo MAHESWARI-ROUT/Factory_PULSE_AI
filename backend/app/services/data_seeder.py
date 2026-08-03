@@ -36,8 +36,8 @@ class DataSeederService:
         self._recommendation_service = recommendation_service
 
     def seed_from_csv(
-        self, csv_path: Path, num_machines: int = 40, max_rows: int = 4000
-    ) -> int:
+    self, csv_path: Path, num_machines: int = 40, max_rows: int = 500
+) -> int:
         if self._machine_repo.count() > 0:
             logger.info("Database already seeded (%d machines) — skipping.", self._machine_repo.count())
             return 0
