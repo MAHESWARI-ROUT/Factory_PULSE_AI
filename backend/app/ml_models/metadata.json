@@ -1,0 +1,125 @@
+{
+  "feature_columns": [
+    "Type",
+    "air_temp_k",
+    "process_temp_k",
+    "rotational_speed_rpm",
+    "torque_nm",
+    "tool_wear_min",
+    "temp_delta",
+    "power_proxy"
+  ],
+  "numeric_feature_order": [
+    "air_temp_k",
+    "process_temp_k",
+    "rotational_speed_rpm",
+    "torque_nm",
+    "tool_wear_min",
+    "temp_delta",
+    "power_proxy"
+  ],
+  "type_classes": [
+    "H",
+    "L",
+    "M"
+  ],
+  "failure_type_classes": [
+    "HDF",
+    "NONE",
+    "OSF",
+    "PWF",
+    "RNF",
+    "TWF"
+  ],
+  "metrics": {
+    "failure_predictor": {
+      "roc_auc": 0.9815,
+      "f1": 0.8571,
+      "report": {
+        "0": {
+          "precision": 0.9927909371781668,
+          "recall": 0.9979296066252588,
+          "f1-score": 0.9953536396489416,
+          "support": 1932.0
+        },
+        "1": {
+          "precision": 0.9310344827586207,
+          "recall": 0.7941176470588235,
+          "f1-score": 0.8571428571428571,
+          "support": 68.0
+        },
+        "accuracy": 0.991,
+        "macro avg": {
+          "precision": 0.9619127099683937,
+          "recall": 0.8960236268420412,
+          "f1-score": 0.9262482483958994,
+          "support": 2000.0
+        },
+        "weighted avg": {
+          "precision": 0.9906912177279024,
+          "recall": 0.991,
+          "f1-score": 0.9906544730437347,
+          "support": 2000.0
+        }
+      }
+    },
+    "failure_type": {
+      "f1_macro": 0.6104,
+      "report": {
+        "HDF": {
+          "precision": 0.9333333333333333,
+          "recall": 0.9655172413793104,
+          "f1-score": 0.9491525423728814,
+          "support": 29.0
+        },
+        "NONE": {
+          "precision": 0.9917568263781555,
+          "recall": 0.9974093264248705,
+          "f1-score": 0.9945750452079566,
+          "support": 1930.0
+        },
+        "OSF": {
+          "precision": 0.8125,
+          "recall": 0.8666666666666667,
+          "f1-score": 0.8387096774193549,
+          "support": 15.0
+        },
+        "PWF": {
+          "precision": 0.8461538461538461,
+          "recall": 0.9166666666666666,
+          "f1-score": 0.88,
+          "support": 12.0
+        },
+        "RNF": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 4.0
+        },
+        "TWF": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 10.0
+        },
+        "accuracy": 0.9885,
+        "macro avg": {
+          "precision": 0.5972906676442226,
+          "recall": 0.6243766501895857,
+          "f1-score": 0.6104062108333654,
+          "support": 2000.0
+        },
+        "weighted avg": {
+          "precision": 0.9817493438651764,
+          "recall": 0.9885,
+          "f1-score": 0.98509795307073,
+          "support": 2000.0
+        }
+      }
+    },
+    "anomaly_detector": {
+      "score_mean": 0.0895,
+      "score_std": 0.046
+    }
+  }
+}

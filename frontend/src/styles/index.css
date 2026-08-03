@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-base-950 text-ink-100;
+  }
+  body {
+    @apply font-body antialiased;
+  }
+  ::selection {
+    @apply bg-signal-cyan/30;
+  }
+}
+
+@layer utilities {
+  .panel {
+    @apply bg-base-900 border border-base-700 rounded-xl shadow-panel;
+  }
+  .data-num {
+    @apply font-mono tabular-nums;
+  }
+}
