@@ -29,13 +29,7 @@ settings = get_settings()
 
 import app
 import asyncio
-@app.get("/gemini-debug")
-def gemini_debug():
-    return {
-        "key_loaded": settings.gemini_api_key is not None,
-        "key_length": len(settings.gemini_api_key) if settings.gemini_api_key else 0,
-        "model": settings.gemini_model,
-    }
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
