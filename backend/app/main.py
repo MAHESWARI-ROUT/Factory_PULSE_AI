@@ -21,14 +21,14 @@ from app.services.data_seeder import DataSeederService
 from app.services.health_score import ThresholdHealthScoreService
 from app.services.ml_predictor import MLPredictionService, ModelArtifacts
 from app.services.recommendation import RuleBasedRecommendationService
+import asyncio
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger("factorypulse.main")
 
 settings = get_settings()
 
-import app
-import asyncio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
