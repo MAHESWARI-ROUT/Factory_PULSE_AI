@@ -1,19 +1,4 @@
-"""
-FactoryPulse AI - Model Training Pipeline
-==========================================
-Trains three models from the AI4I 2020 Predictive Maintenance dataset:
 
-  1. Failure Predictor      -> XGBoost binary classifier (will the machine fail?)
-  2. Failure Type Classifier-> XGBoost multiclass classifier (which failure mode?)
-  3. Anomaly Detector       -> Isolation Forest (unsupervised sensor anomaly score)
-
-Each stage is isolated behind a small class with a single responsibility so the
-pipeline can be re-run, unit tested, or swapped out (e.g. LightGBM instead of
-XGBoost) without touching the other stages.
-
-Usage:
-    python train.py --data data/ai4i2020.csv --out models/
-"""
 from __future__ import annotations
 
 import argparse
