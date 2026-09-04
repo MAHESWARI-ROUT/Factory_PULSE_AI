@@ -6,6 +6,7 @@ import MachineList from "./pages/MachineList.jsx";
 import MachineDetail from "./pages/MachineDetail.jsx";
 import MaintenanceReports from "./pages/MaintenanceReports.jsx";
 import ChatAssistant from "./pages/ChatAssistant.jsx";
+import BatchPredict from "./pages/BatchPredict.jsx";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/machines/:machineId" element={<MachineDetail />} />
           <Route path="/reports" element={<MaintenanceReports />} />
           <Route path="/chat" element={<ChatAssistant />} />
+          <Route path="/batch-predict" element={<BatchPredict />} />
         </Routes>
       </main>
     </div>

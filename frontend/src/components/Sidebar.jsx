@@ -4,6 +4,7 @@ const NAV_ITEMS = [
   { to: "/", label: "Executive", icon: "◆" },
   { to: "/risk", label: "Risk Board", icon: "▲" },
   { to: "/machines", label: "Machines", icon: "▦" },
+  { to: "/batch-predict", label: "Batch Predict", icon: "⇧" },
   { to: "/reports", label: "Reports", icon: "▤" },
   { to: "/chat", label: "Assistant", icon: "◈" },
 ];

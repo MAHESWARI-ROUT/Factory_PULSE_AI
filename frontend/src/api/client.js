@@ -51,4 +51,20 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ question }),
     }),
+
+  batchTemplateUrl: () => `${BASE_URL}/predictions/batch-template`,
+
+  batchPredict: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${BASE_URL}/predictions/batch-predict`, {
+      method: "POST",
+      body: formData, // no Content-Type header -- browser sets the multipart boundary
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Upload failed (${res.status})`);
+    }
+    return res.json();
+  },
 };

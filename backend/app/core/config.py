@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     # Optional: if unset, the app automatically falls back to the rule-based
     # explanation engine instead of calling out to Gemini.
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-flash-latest"
 
     ml_models_dir: str = "app/ml_models"
 

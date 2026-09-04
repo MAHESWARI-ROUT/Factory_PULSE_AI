@@ -20,6 +20,7 @@ from app.repositories.sqlalchemy_repositories import (
 from app.services.chat_assistant import ChatAssistantService
 from app.services.dashboard_aggregator import DashboardAggregatorService
 from app.services.data_seeder import DataSeederService
+from app.services.batch_prediction import BatchPredictionService
 from app.services.explanation import GeminiExplanationService, RuleBasedExplanationService
 from app.services.health_score import ThresholdHealthScoreService
 from app.services.interfaces import IExplanationService, IHealthScoreService, IMLPredictionService
@@ -46,6 +47,13 @@ def get_ml_prediction_service(
 
 def get_recommendation_service() -> RuleBasedRecommendationService:
     return RuleBasedRecommendationService()
+
+
+def get_batch_prediction_service(
+    ml_service: IMLPredictionService = Depends(get_ml_prediction_service),
+    recommendation_service: RuleBasedRecommendationService = Depends(get_recommendation_service),
+) -> BatchPredictionService:
+    return BatchPredictionService(ml_service, recommendation_service)
 
 
 def get_explanation_service(settings: Settings = Depends(get_settings)) -> IExplanationService:
