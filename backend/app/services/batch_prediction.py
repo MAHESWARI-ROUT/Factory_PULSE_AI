@@ -18,7 +18,7 @@ import pandas as pd
 from app.domain.entities import SensorReading
 from app.domain.enums import MachineType
 from app.schemas.batch import BatchPredictionError, BatchPredictionResponse, BatchPredictionRow
-from app.services.interfaces import IMLPredictionService, IRecommendationService
+from app.services.interfaces import IExplanationService, IMLPredictionService, IRecommendationService
 
 # Each canonical field accepts several header spellings, matched
 # case-insensitively after stripping whitespace/brackets/underscores.
@@ -57,9 +57,22 @@ class UnsupportedFileTypeError(Exception):
 
 
 class BatchPredictionService:
-    def __init__(self, ml_service: IMLPredictionService, recommendation_service: IRecommendationService):
+    """Runs every row of an uploaded file through the exact same pipeline as
+    a single ad-hoc prediction: failure predictor -> failure-type classifier
+    -> anomaly detector -> health-score service -> recommendation service ->
+    explanation service (Gemini, or the rule-based fallback when no API key
+    is configured). Nothing here is a separate/lighter code path — it's the
+    same services the single-machine detail page uses, just looped."""
+
+    def __init__(
+        self,
+        ml_service: IMLPredictionService,
+        recommendation_service: IRecommendationService,
+        explanation_service: IExplanationService,
+    ):
         self._ml_service = ml_service
         self._recommendation_service = recommendation_service
+        self._explanation_service = explanation_service
 
     def predict_from_file(self, filename: str, content: bytes) -> BatchPredictionResponse:
         df = self._read_file(filename, content)
@@ -103,10 +116,17 @@ class BatchPredictionService:
         )
         outcome = self._ml_service.predict(reading)
         recommendation = self._recommendation_service.recommend(machine_id, reading, outcome)
+        ai_explanation = self._explanation_service.explain(machine_id, reading, outcome)
 
         return BatchPredictionRow(
             row_number=row_number,
             machine_id=machine_id,
+            machine_type=reading.machine_type,
+            air_temperature_k=reading.air_temperature_k,
+            process_temperature_k=reading.process_temperature_k,
+            rotational_speed_rpm=reading.rotational_speed_rpm,
+            torque_nm=reading.torque_nm,
+            tool_wear_min=reading.tool_wear_min,
             health_score=outcome.health_score,
             health_status=outcome.health_status,
             failure_probability=outcome.failure_probability,
@@ -115,6 +135,7 @@ class BatchPredictionService:
             is_anomaly=outcome.is_anomaly,
             priority=recommendation.priority,
             recommended_action=recommendation.recommended_action,
+            ai_explanation=ai_explanation,
         )
 
     @staticmethod

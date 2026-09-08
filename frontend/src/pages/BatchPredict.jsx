@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { api } from "../api/client.js";
 import HealthRing from "../components/HealthRing.jsx";
 import { StatusBadge, PriorityBadge } from "../components/Badges.jsx";
@@ -10,6 +12,7 @@ export default function BatchPredict() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
   const inputRef = useRef(null);
 
   function pickFile(f) {
@@ -37,22 +40,40 @@ export default function BatchPredict() {
     if (!result) return;
     const header = [
       "machine_id",
+      "machine_type",
+      "air_temperature_k",
+      "process_temperature_k",
+      "rotational_speed_rpm",
+      "torque_nm",
+      "tool_wear_min",
       "health_score",
       "health_status",
       "failure_probability",
       "predicted_failure_type",
+      "anomaly_score",
+      "is_anomaly",
       "priority",
       "recommended_action",
+      "ai_explanation",
     ];
     const lines = result.results.map((r) =>
       [
         r.machine_id,
+        r.machine_type,
+        r.air_temperature_k,
+        r.process_temperature_k,
+        r.rotational_speed_rpm,
+        r.torque_nm,
+        r.tool_wear_min,
         r.health_score,
         r.health_status,
         (r.failure_probability * 100).toFixed(1) + "%",
         r.predicted_failure_type,
+        r.anomaly_score,
+        r.is_anomaly,
         r.priority,
         `"${r.recommended_action.replace(/"/g, '""')}"`,
+        `"${r.ai_explanation.replace(/"/g, '""')}"`,
       ].join(",")
     );
     const csv = [header.join(","), ...lines].join("\n");
@@ -63,6 +84,116 @@ export default function BatchPredict() {
     a.download = "factorypulse_batch_predictions.csv";
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function downloadDetailedPdf() {
+    if (!result) return;
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt" });
+    const generatedAt = new Date().toLocaleString();
+    const urgentCount = result.results.filter((r) => r.priority === "Urgent").length;
+
+    doc.setFontSize(16);
+    doc.text("FactoryPulse AI — Batch Prediction Report", 40, 40);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Source file: ${result.filename} · Generated ${generatedAt}`, 40, 58);
+    doc.text(
+      `${result.successful}/${result.total_rows} rows processed · ${urgentCount} urgent · ${result.failed} failed`,
+      40,
+      72
+    );
+
+    // Summary table — one row per machine, same shape as the automatic
+    // maintenance report, plus the anomaly-detector columns unique to a
+    // fresh batch upload.
+    autoTable(doc, {
+      startY: 90,
+      head: [
+        [
+          "Machine ID",
+          "Health",
+          "Failure Prob.",
+          "Predicted Type",
+          "Anomaly",
+          "Priority",
+          "Recommended Action",
+        ],
+      ],
+      body: result.results.map((r) => [
+        r.machine_id,
+        `${Math.round(r.health_score)}/100`,
+        `${(r.failure_probability * 100).toFixed(1)}%`,
+        r.predicted_failure_type,
+        r.is_anomaly ? `Yes (${r.anomaly_score.toFixed(2)})` : "No",
+        r.priority,
+        r.recommended_action,
+      ]),
+      styles: { fontSize: 9, cellPadding: 6, overflow: "linebreak" },
+      headStyles: { fillColor: [20, 29, 51], textColor: 255 },
+      columnStyles: {
+        0: { cellWidth: 75 },
+        1: { cellWidth: 55 },
+        2: { cellWidth: 70 },
+        3: { cellWidth: 90 },
+        4: { cellWidth: 70 },
+        5: { cellWidth: 55 },
+        6: { cellWidth: "auto" },
+      },
+      didParseCell: (hookData) => {
+        if (hookData.section === "body" && hookData.column.index === 5) {
+          const priority = hookData.cell.raw;
+          const colors = { Urgent: [239, 90, 90], High: [245, 165, 36], Medium: [63, 208, 224], Low: [124, 136, 163] };
+          if (colors[priority]) hookData.cell.styles.textColor = colors[priority];
+        }
+      },
+    });
+
+    // Detailed per-machine section — mirrors the single-machine detail
+    // page: sensor readings, the full ML pipeline output, and the
+    // Gemini/rule-based AI explanation, one block per uploaded row.
+    doc.addPage();
+    doc.setFontSize(14);
+    doc.text("Detailed Machine Reports", 40, 40);
+
+    let y = 64;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    result.results.forEach((r, idx) => {
+      if (y > pageHeight - 140) {
+        doc.addPage();
+        y = 48;
+      }
+      doc.setFontSize(11);
+      doc.setTextColor(20);
+      doc.text(`${idx + 1}. ${r.machine_id} — Type ${r.machine_type}`, 40, y);
+      y += 16;
+      doc.setFontSize(9);
+      doc.setTextColor(90);
+      doc.text(
+        `Health ${Math.round(r.health_score)}/100 (${r.health_status}) · ${r.predicted_failure_type} ` +
+          `(${(r.failure_probability * 100).toFixed(1)}%) · Anomaly: ${r.is_anomaly ? "Yes" : "No"} ` +
+          `(score ${r.anomaly_score.toFixed(2)}) · Priority: ${r.priority}`,
+        40,
+        y
+      );
+      y += 14;
+      doc.text(
+        `Air ${r.air_temperature_k.toFixed(1)}K · Process ${r.process_temperature_k.toFixed(1)}K · ` +
+          `${r.rotational_speed_rpm.toFixed(0)} rpm · ${r.torque_nm.toFixed(1)} Nm · ` +
+          `Tool wear ${r.tool_wear_min.toFixed(0)} min`,
+        40,
+        y
+      );
+      y += 14;
+      doc.setTextColor(20);
+      const wrappedAction = doc.splitTextToSize(`Action: ${r.recommended_action}`, 700);
+      doc.text(wrappedAction, 40, y);
+      y += wrappedAction.length * 12 + 2;
+      const wrappedExplanation = doc.splitTextToSize(`AI Assistant: ${r.ai_explanation}`, 700);
+      doc.text(wrappedExplanation, 40, y);
+      y += wrappedExplanation.length * 12 + 18;
+    });
+
+    doc.save(`factorypulse-batch-report-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 
   const sortedResults = result
@@ -130,12 +261,20 @@ export default function BatchPredict() {
           Download CSV template
         </a>
         {result && (
-          <button
-            onClick={exportResultsCsv}
-            className="ml-auto px-4 py-2 rounded-lg border border-base-700 text-xs text-ink-300 hover:border-signal-cyan/40 hover:text-signal-cyan transition-colors"
-          >
-            Export results as CSV
-          </button>
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={downloadDetailedPdf}
+              className="px-4 py-2 rounded-lg border border-base-700 text-xs text-ink-300 hover:border-signal-cyan/40 hover:text-signal-cyan transition-colors"
+            >
+              Download detailed PDF report
+            </button>
+            <button
+              onClick={exportResultsCsv}
+              className="px-4 py-2 rounded-lg border border-base-700 text-xs text-ink-300 hover:border-signal-cyan/40 hover:text-signal-cyan transition-colors"
+            >
+              Export results as CSV
+            </button>
+          </div>
         )}
       </div>
 
@@ -175,10 +314,10 @@ export default function BatchPredict() {
 
           <div className="grid grid-cols-4 gap-4">
             {sortedResults.map((r) => (
-              <Link
+              <button
                 key={`${r.machine_id}-${r.row_number}`}
-                to={r.machine_id.startsWith("UPLOAD-ROW") ? "#" : `/machines/${r.machine_id}`}
-                className="panel p-5 flex items-center gap-4 hover:border-signal-cyan/40 transition-colors"
+                onClick={() => setSelectedRow(r)}
+                className="panel p-5 flex items-center gap-4 text-left hover:border-signal-cyan/40 transition-colors"
               >
                 <HealthRing score={r.health_score} status={r.health_status} size={64} strokeWidth={5} />
                 <div className="flex-1 min-w-0">
@@ -189,13 +328,99 @@ export default function BatchPredict() {
                   <div className="flex gap-1.5 flex-wrap">
                     <StatusBadge status={r.health_status} />
                     <PriorityBadge priority={r.priority} />
+                    {r.is_anomaly && (
+                      <span className="px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wide bg-signal-amber/10 text-signal-amber">
+                        Anomaly
+                      </span>
+                    )}
                   </div>
                 </div>
-              </Link>
+              </button>
             ))}
           </div>
         </>
       )}
+
+      {selectedRow && <RowDetailModal row={selectedRow} onClose={() => setSelectedRow(null)} />}
+    </div>
+  );
+}
+
+function RowDetailModal({ row, onClose }) {
+  const isKnownMachine = !row.machine_id.startsWith("UPLOAD-ROW");
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+      onClick={onClose}
+    >
+      <div
+        className="panel w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 space-y-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <HealthRing score={row.health_score} status={row.health_status} size={72} strokeWidth={6} />
+            <div>
+              <h3 className="font-display text-xl font-semibold">{row.machine_id}</h3>
+              <p className="text-xs text-ink-500 mb-2">Type {row.machine_type} &middot; Row {row.row_number}</p>
+              <div className="flex gap-1.5 flex-wrap">
+                <StatusBadge status={row.health_status} />
+                <PriorityBadge priority={row.priority} />
+                {row.is_anomaly && (
+                  <span className="px-2 py-0.5 rounded text-[11px] font-semibold uppercase tracking-wide bg-signal-amber/10 text-signal-amber">
+                    Anomaly (score {row.anomaly_score.toFixed(2)})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-ink-500 hover:text-ink-100 text-xl leading-none">
+            &times;
+          </button>
+        </div>
+
+        <div className="panel p-4 bg-base-800/40">
+          <p className="text-xs text-ink-500 uppercase tracking-wider mb-1">Predicted Failure</p>
+          <p className="font-display text-lg">{row.predicted_failure_type}</p>
+          <p className="data-num text-sm text-ink-300">{(row.failure_probability * 100).toFixed(1)}% probability</p>
+        </div>
+
+        <div>
+          <h4 className="font-display text-sm font-medium text-ink-300 mb-2">AI Maintenance Assistant</h4>
+          <p className="text-sm text-ink-100 leading-relaxed mb-2">{row.recommended_action}</p>
+          <p className="text-sm text-ink-400 leading-relaxed italic">{row.ai_explanation}</p>
+        </div>
+
+        <div>
+          <h4 className="font-display text-sm font-medium text-ink-300 mb-3">Sensor Readings</h4>
+          <div className="grid grid-cols-5 gap-3">
+            <SensorStat label="Air Temp" value={`${row.air_temperature_k.toFixed(1)} K`} />
+            <SensorStat label="Process Temp" value={`${row.process_temperature_k.toFixed(1)} K`} />
+            <SensorStat label="Rotational Speed" value={`${row.rotational_speed_rpm.toFixed(0)} rpm`} />
+            <SensorStat label="Torque" value={`${row.torque_nm.toFixed(1)} Nm`} />
+            <SensorStat label="Tool Wear" value={`${row.tool_wear_min.toFixed(0)} min`} />
+          </div>
+        </div>
+
+        {isKnownMachine && (
+          <Link
+            to={`/machines/${row.machine_id}`}
+            className="inline-block text-xs text-signal-cyan hover:underline underline-offset-2"
+          >
+            View full machine history &rarr;
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SensorStat({ label, value }) {
+  return (
+    <div className="panel p-3">
+      <p className="text-[10px] uppercase tracking-wider text-ink-500 mb-1">{label}</p>
+      <p className="data-num text-sm font-medium text-ink-100">{value}</p>
     </div>
   );
 }

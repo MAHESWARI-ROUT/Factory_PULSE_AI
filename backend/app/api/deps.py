@@ -49,18 +49,24 @@ def get_recommendation_service() -> RuleBasedRecommendationService:
     return RuleBasedRecommendationService()
 
 
-def get_batch_prediction_service(
-    ml_service: IMLPredictionService = Depends(get_ml_prediction_service),
-    recommendation_service: RuleBasedRecommendationService = Depends(get_recommendation_service),
-) -> BatchPredictionService:
-    return BatchPredictionService(ml_service, recommendation_service)
-
-
 def get_explanation_service(settings: Settings = Depends(get_settings)) -> IExplanationService:
     fallback = RuleBasedExplanationService()
     if settings.gemini_api_key:
         return GeminiExplanationService(settings.gemini_api_key, settings.gemini_model, fallback)
     return fallback
+
+
+def get_batch_prediction_service(
+    ml_service: IMLPredictionService = Depends(get_ml_prediction_service),
+    recommendation_service: RuleBasedRecommendationService = Depends(get_recommendation_service),
+    explanation_service: IExplanationService = Depends(get_explanation_service),
+) -> BatchPredictionService:
+    # Wires failure predictor + failure-type classifier + anomaly detector
+    # (all inside ml_service) + health-score service (inside ml_service) +
+    # recommendation service + Gemini/rule-based explanation service into
+    # the batch pipeline — the same stack the single "/predictions/predict"
+    # and machine-detail routes use.
+    return BatchPredictionService(ml_service, recommendation_service, explanation_service)
 
 
 def get_machine_repository(db: Session = Depends(get_db)) -> IMachineRepository:
